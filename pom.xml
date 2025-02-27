@@ -16,6 +16,7 @@
     <modules>
         <module>consumer-parent</module>
         <module>provider-parent</module>
+        <module>app-rpc</module>
     </modules>
 
 
