@@ -1,7 +1,9 @@
 package com.mszlu.rpc.consumer.controller;
 
 
+import com.mszlu.rpc.annontation.MsReference;
 import com.mszlu.rpc.consumer.rpc.GoodsHttpRpc;
+import com.mszlu.rpc.provider.service.GoodsService;
 import com.mszlu.rpc.provider.service.modal.Goods;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,12 +14,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("consumer")
 public class ConsumerController {
+    /**
+     * Http实现方式
+     */
+//    @Resource
+//    private GoodsHttpRpc goodsHttpRpc;
+//
+//    @GetMapping("/find/{id}")
+//    public Goods find(@PathVariable Long id){
+//        return goodsHttpRpc.findGoods(id);
+//    }
 
-    @Resource
-    private GoodsHttpRpc goodsHttpRpc;
+    /**
+     * TCP实现方式
+     */
+    @MsReference
+    private GoodsService goodsService;
 
     @GetMapping("/find/{id}")
     public Goods find(@PathVariable Long id){
-        return goodsHttpRpc.findGoods(id);
+        return goodsService.findGoods(id);
     }
+
 }

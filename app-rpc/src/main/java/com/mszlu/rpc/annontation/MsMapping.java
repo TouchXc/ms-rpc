@@ -8,8 +8,8 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 public @interface MsMapping {
-
+    // api调用路径
     String api() default "";
-
+    // 调用url路径
     String url() default "";
 }

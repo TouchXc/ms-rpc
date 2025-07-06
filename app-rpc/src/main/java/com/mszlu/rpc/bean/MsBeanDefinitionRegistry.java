@@ -16,6 +16,8 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.MethodMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import java.util.Map;
@@ -45,30 +47,33 @@ public class MsBeanDefinitionRegistry implements ImportBeanDefinitionRegistrar, 
     }
 
     @Override
-    public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+    public void registerBeanDefinitions(@NonNull AnnotationMetadata metadata, @NonNull BeanDefinitionRegistry registry) {
         registerMsHttpClient(metadata,registry);
     }
 
     private void registerMsHttpClient(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
         // 将标识的接口生成代理类，注册到Spring容器中
-        Map<String, Object> annotationAttributes = metadata.getAnnotationAttributes(EnableHttpClient.class.getCanonicalName());
+        Map<String, Object> annotationAttributes = metadata
+                .getAnnotationAttributes(EnableHttpClient.class.getCanonicalName());
         //找到Enable注解，获取其中的basePackage属性，此属性标明了@MsHttpClient所在的包
         Object basePackage = annotationAttributes.get("basePackage");
         if (basePackage!=null) {
             String base = basePackage.toString();
+
             //ClassPathScanningCandidateComponentProvider是Spring提供的工具，可以按自定义的类型，查找classpath下符合要求的class文件
             ClassPathScanningCandidateComponentProvider scanner = getScanner();
             scanner.setResourceLoader(resourceLoader);
+            // 设置包扫描的过滤器 定位到MsHttpClient
             AnnotationTypeFilter annotationTypeFilter = new AnnotationTypeFilter(MsHttpClient.class);
             scanner.addIncludeFilter(annotationTypeFilter);
             //上方定义了要找@MsHttpClient注解标识的类，这里进行对应包的扫描,扫描后就找到了所有被@MsHttpClient注解标识的类
             Set<BeanDefinition> candidateComponents = scanner.findCandidateComponents(base);
             for (BeanDefinition candidateComponent : candidateComponents) {
-                if (candidateComponent instanceof AnnotatedBeanDefinition){
+                if (candidateComponent instanceof AnnotatedBeanDefinition annotatedBeanDefinition){
                     //这就是被@MsHttpClient注解标识的类
-                    AnnotatedBeanDefinition annotatedBeanDefinition = (AnnotatedBeanDefinition) candidateComponent;
                     AnnotationMetadata beanDefinitionMetadata = annotatedBeanDefinition.getMetadata();
-                    Assert.isTrue(beanDefinitionMetadata.isInterface(),"@MsHttpClient 必须定义在接口上");
+                    // 确认注解在接口上使用
+                    Assert.isTrue(beanDefinitionMetadata.isInterface(),"@MsHttpClient注解必须定义在接口上");
                     //获取此注解的属性
                     Map<String, Object> clientAnnotationAttributes = beanDefinitionMetadata.getAnnotationAttributes(MsHttpClient.class.getCanonicalName());
                     //这里判断是否value设置了值，value为此Bean的名称，定义bean的时候要用
@@ -100,7 +105,7 @@ public class MsBeanDefinitionRegistry implements ImportBeanDefinitionRegistrar, 
     protected ClassPathScanningCandidateComponentProvider getScanner() {
         return new ClassPathScanningCandidateComponentProvider(false, this.environment) {
             @Override
-            protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+            protected boolean isCandidateComponent(@NonNull AnnotatedBeanDefinition beanDefinition) {
                 boolean isCandidate = false;
                 if (beanDefinition.getMetadata().isIndependent()) {
                     if (!beanDefinition.getMetadata().isAnnotation()) {

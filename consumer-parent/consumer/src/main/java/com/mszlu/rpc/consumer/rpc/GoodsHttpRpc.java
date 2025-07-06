@@ -10,5 +10,5 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface GoodsHttpRpc {
 
     @MsMapping(url = "http://localhost:7777",api = "/provider/goods/{id}")
-    public Goods findGoods(@PathVariable Long id);
+    Goods findGoods(@PathVariable Long id);
 }

@@ -1,12 +1,14 @@
 package com.mszlu.rpc.provider.service.impl;
 
+import com.mszlu.rpc.annontation.MsService;
 import com.mszlu.rpc.provider.service.GoodsService;
 import com.mszlu.rpc.provider.service.modal.Goods;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-@Service
+//@MsService
+@MsService
 public class GoodsServiceImpl implements GoodsService {
 
     public Goods findGoods(Long id) {
