@@ -6,6 +6,8 @@ import com.mszlu.rpc.exception.MsRpcException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.invoke.VarHandle;
+import java.util.ServiceLoader;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -51,5 +53,16 @@ public class GzipCompress implements Compress {
             throw new MsRpcException("解压缩数据出错", e);
         }
 
+    }
+
+    private Compress loadCompress(byte compressType) {
+        String name = CompressTypeEnum.getName(compressType);
+        ServiceLoader<Compress> compressServiceLoader = ServiceLoader.load(Compress.class);
+        for (Compress compress : compressServiceLoader) {
+            if (compress.name().equals(name)) {
+                return compress;
+            }
+        }
+        throw new MsRpcException("没有找到对应的压缩方式");
     }
 }

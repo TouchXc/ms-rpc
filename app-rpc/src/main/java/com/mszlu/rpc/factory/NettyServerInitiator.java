@@ -16,9 +16,12 @@ public class NettyServerInitiator extends ChannelInitializer<SocketChannel> {
         this.eventExecutors = eventExecutors;
     }
 
-    protected void initChannel(SocketChannel channel) throws Exception {
-        channel.pipeline().addLast("decoder",new MsRpcDecoder());
-        channel.pipeline().addLast("encoder",new MsRpcEncoder());
-        channel.pipeline ().addLast(eventExecutors,"handler",new MsNettyServerHandler());
+    protected void initChannel(SocketChannel ch) throws Exception {
+        // 解码器
+        ch.pipeline().addLast("decoder",new MsRpcDecoder());
+        // 编码器
+        ch.pipeline().addLast("encoder",new MsRpcEncoder());
+        // 业务处理
+        ch.pipeline().addLast(this.eventExecutors,"handler",new MsNettyServerHandler());
     }
 }
