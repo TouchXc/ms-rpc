@@ -18,7 +18,7 @@ public class ProtostuffSerializer implements Serializer {
      * 避免每次序列化都重新申请Buffer空间,用来暂时存放对象序列化之后的数据
      * LinkedBuffer 是一个可复用的、链式的字节缓冲区，用于在序列化过程中临时缓存数据，避免频繁创建新的字节数组，减少 GC 压力
      */
-    private LinkedBuffer buffer = LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE);
+    private final LinkedBuffer buffer = LinkedBuffer.allocate(LinkedBuffer.DEFAULT_BUFFER_SIZE);
 
     /**
      * 缓存类对应的Schema，由于构造schema需要获得对象的类和字段信息，会用到反射机制
@@ -59,7 +59,7 @@ public class ProtostuffSerializer implements Serializer {
      * @param clazz
      * @return [io.protostuff.Schema]
      */
-    private Schema getSchema(Class<?> clazz) {
+    private Schema<?> getSchema(Class<?> clazz) {
         //首先尝试从Map缓存中获取类对应的schema
         Schema<?> schema = schemaCache.get(clazz);
         if (Objects.isNull(schema)) {

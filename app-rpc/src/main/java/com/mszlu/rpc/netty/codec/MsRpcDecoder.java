@@ -1,6 +1,7 @@
 package com.mszlu.rpc.netty.codec;
 
 import com.mszlu.rpc.compress.Compress;
+import com.mszlu.rpc.compress.GzipCompress;
 import com.mszlu.rpc.constants.CompressTypeEnum;
 import com.mszlu.rpc.constants.MessageTypeEnum;
 import com.mszlu.rpc.constants.MsRpcConstants;

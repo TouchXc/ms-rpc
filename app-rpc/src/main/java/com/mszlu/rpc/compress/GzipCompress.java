@@ -2,6 +2,7 @@ package com.mszlu.rpc.compress;
 
 import com.mszlu.rpc.constants.CompressTypeEnum;
 import com.mszlu.rpc.exception.MsRpcException;
+import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +12,7 @@ import java.util.ServiceLoader;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+@Component
 public class GzipCompress implements Compress {
     @Override
     public String name() {
@@ -52,17 +54,6 @@ public class GzipCompress implements Compress {
         } catch (IOException e) {
             throw new MsRpcException("解压缩数据出错", e);
         }
-
     }
 
-    private Compress loadCompress(byte compressType) {
-        String name = CompressTypeEnum.getName(compressType);
-        ServiceLoader<Compress> compressServiceLoader = ServiceLoader.load(Compress.class);
-        for (Compress compress : compressServiceLoader) {
-            if (compress.name().equals(name)) {
-                return compress;
-            }
-        }
-        throw new MsRpcException("没有找到对应的压缩方式");
-    }
 }
