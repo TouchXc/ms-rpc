@@ -2,11 +2,13 @@ package com.mszlu.rpc.proxy;
 
 
 import com.mszlu.rpc.annontation.MsReference;
+import com.mszlu.rpc.message.MsRequest;
 import lombok.Getter;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.UUID;
 
 //每一个动态代理类的调用处理程序都必须实现InvocationHandler接口
 // 并且每个代理类的实例都关联到了实现该接口的动态代理类调用处理程序中
@@ -32,6 +34,19 @@ public class MsRpcClientProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         System.out.println("rpc的代理实现类 调用了...");
+        // 构建请求数据
+        MsRequest request = MsRequest.builder()
+                .methodName(method.getName())
+                .parameters(args)
+                .interfaceName(method.getDeclaringClass().getName())
+                .paramTypes(method.getParameterTypes())
+                .requestId(UUID.randomUUID().toString())
+                .version(msReference.version())
+                .build();
+        //创建Netty客户端
+        String host = msReference.host();
+        int port = msReference.port();
+
         return null;
     }
 
