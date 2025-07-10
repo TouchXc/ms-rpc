@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-//@MsService
 @MsService
+@Service
 public class GoodsServiceImpl implements GoodsService {
 
     public Goods findGoods(Long id) {

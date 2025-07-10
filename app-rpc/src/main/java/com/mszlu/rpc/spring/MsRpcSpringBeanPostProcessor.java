@@ -4,6 +4,7 @@ package com.mszlu.rpc.spring;
 import com.mszlu.rpc.annontation.MsReference;
 import com.mszlu.rpc.annontation.MsService;
 import com.mszlu.rpc.factory.SingletonFactory;
+import com.mszlu.rpc.netty.NettyClient;
 import com.mszlu.rpc.proxy.MsRpcClientProxy;
 import com.mszlu.rpc.server.MsServiceProvider;
 import lombok.SneakyThrows;
@@ -24,10 +25,12 @@ import java.lang.reflect.Field;
 public class MsRpcSpringBeanPostProcessor implements BeanPostProcessor {
 
     final private MsServiceProvider msServiceProvider;
+    final private NettyClient nettyClient;
 
     public MsRpcSpringBeanPostProcessor() {
         //通过单例工厂获取服务提供者类
         this.msServiceProvider = SingletonFactory.getInstance(MsServiceProvider.class);
+        this.nettyClient = SingletonFactory.getInstance(NettyClient.class);
     }
 
     //bean初始化方法前被调用
@@ -54,7 +57,7 @@ public class MsRpcSpringBeanPostProcessor implements BeanPostProcessor {
             MsReference msReference = declaredField.getAnnotation(MsReference.class);
             if (msReference != null) {
                 //代理实现类，调用方法的时候 会触发invoke方法，在其中实现网络调用
-                MsRpcClientProxy msRpcClientProxy = new MsRpcClientProxy(msReference);
+                MsRpcClientProxy msRpcClientProxy = new MsRpcClientProxy(msReference, nettyClient);
                 Object proxy = msRpcClientProxy.getProxy(declaredField.getType());
                 try {
                     //当isAccessible()的结果是false时不允许通过反射访问该字段
