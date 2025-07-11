@@ -96,12 +96,13 @@ public class MsRpcDecoder extends LengthFieldBasedFrameDecoder {
             bodyData = compress.decompress(bodyData);
             // 反序列化
             Serializer serializer = loadSerializer(codecType);
-            if (MessageTypeEnum.REQUEST.getCode()==codecType) {
+            if (MessageTypeEnum.REQUEST.getCode()==messageType) {
                 Object object = serializer.deserialize(bodyData, MsRequest.class);
                 if (object instanceof MsRequest msRequest) {
                     msMessage.setData(msRequest);
                 }
-            } else if (MessageTypeEnum.RESPONSE.getCode()==codecType) {
+            }
+            if (MessageTypeEnum.RESPONSE.getCode()==messageType) {
                 Object object = serializer.deserialize(bodyData, MsResponse.class);
                 if (object instanceof MsResponse<?> msResponse) {
                     msMessage.setData(msResponse);

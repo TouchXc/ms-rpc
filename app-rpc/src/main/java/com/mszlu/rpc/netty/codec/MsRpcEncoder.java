@@ -24,7 +24,7 @@ public class MsRpcEncoder extends MessageToByteEncoder<MsMessage> {
         // 1B version（版本）
         out.writeByte(MsRpcConstants.VERSION);
         // 4B full length（消息长度）空出四个字节预留
-        out.writeByte(out.writerIndex()+4);
+        out.writerIndex(out.writerIndex()+4);
         // 1B messageType（消息类型）
         byte messageType = msg.getMessageType();
         out.writeByte(messageType);
@@ -49,7 +49,7 @@ public class MsRpcEncoder extends MessageToByteEncoder<MsMessage> {
         out.writeBytes(bytes);
         int writerIndex = out.writerIndex();
         // 写入消息长度参数
-        out.writeByte(writerIndex-fullLength+MsRpcConstants.MAGIC_NUMBER.length+MsRpcConstants.VERSION);
+        out.writerIndex(writerIndex-fullLength+MsRpcConstants.MAGIC_NUMBER.length+MsRpcConstants.VERSION);
         out.writeInt(fullLength);
         out.writerIndex(writerIndex);
     }

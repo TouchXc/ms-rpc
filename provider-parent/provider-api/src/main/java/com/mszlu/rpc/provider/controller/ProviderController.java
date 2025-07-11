@@ -18,7 +18,6 @@ public class ProviderController {
 
     @GetMapping("/goods/{id}")
     public Goods findGood(@PathVariable Long id){
-
         return goodsService.findGoods(id);
     }
 }

@@ -9,6 +9,7 @@ public enum SerializationTypeEnum {
     Proto_stuff((byte) 0x01, "proto_stuff");
 
     private final byte code;
+
     private final String name;
 
     public static String getName(byte code) {

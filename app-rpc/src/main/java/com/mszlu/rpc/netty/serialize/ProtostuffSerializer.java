@@ -1,6 +1,7 @@
 package com.mszlu.rpc.netty.serialize;
 
 import com.mszlu.rpc.constants.SerializationTypeEnum;
+import io.netty.util.Constant;
 import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
@@ -26,10 +27,11 @@ public class ProtostuffSerializer implements Serializer {
      */
     private Map<Class<?>, Schema<?>> schemaCache = new ConcurrentHashMap<>();
 
+    private final String SERIALIZATION_TYPE = SerializationTypeEnum.Proto_stuff.getName();
 
     @Override
     public String name() {
-        return SerializationTypeEnum.Proto_stuff.name();
+        return this.SERIALIZATION_TYPE;
     }
 
     @Override
