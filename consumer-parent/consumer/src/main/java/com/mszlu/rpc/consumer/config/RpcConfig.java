@@ -5,7 +5,7 @@ import com.mszlu.rpc.annontation.EnableRpc;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableHttpClient(basePackage = "com.mszlu.rpc.consumer")
+//@EnableHttpClient(basePackage = "com.mszlu.rpc.consumer")
 @EnableRpc
 public class RpcConfig {
 }

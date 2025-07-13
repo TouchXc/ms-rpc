@@ -7,6 +7,7 @@ import com.mszlu.rpc.message.MsRequest;
 import com.mszlu.rpc.message.MsResponse;
 import com.mszlu.rpc.netty.NettyClient;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -19,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 // 当我们通过动态代理对象调用一个方法时候
 // 这个方法的调用就会被转发到实现InvocationHandler接口类的invoke方法来调用
 @Getter
+@Slf4j
 public class MsRpcClientProxy implements InvocationHandler {
 
     private MsReference msReference;
@@ -39,11 +41,12 @@ public class MsRpcClientProxy implements InvocationHandler {
      */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        System.out.println("rpc的代理实现类 调用了...");
+        log.info("rpc的代理实现类 调用了...");
         // 构建请求数据
         String requestId = UUID.randomUUID().toString();
 
         MsRequest request = MsRequest.builder()
+                .group("ms-rpc")
                 .methodName(method.getName())
                 .parameters(args)
                 .interfaceName(method.getDeclaringClass().getName())
@@ -52,9 +55,8 @@ public class MsRpcClientProxy implements InvocationHandler {
                 .version(msReference.version())
                 .build();
         //创建Netty客户端
-        String host = msReference.host();
-        int port = msReference.port();
-        CompletableFuture<MsResponse<Object>> responseFuture = (CompletableFuture<MsResponse<Object>>)nettyClient.sendRequest(request, host, port);
+
+        CompletableFuture<MsResponse<Object>> responseFuture = (CompletableFuture<MsResponse<Object>>)nettyClient.sendRequest(request);
         MsResponse<Object> msResponse = responseFuture.get();
         if (msResponse == null){
             throw new MsRpcException("服务调用失败");

@@ -26,7 +26,7 @@ public class ConsumerController {
     /**
      * TCP实现方式
      */
-    @MsReference(host = "localhost", port = 13567)
+    @MsReference
     private GoodsService goodsService;
 
     @GetMapping("/find/{id}")

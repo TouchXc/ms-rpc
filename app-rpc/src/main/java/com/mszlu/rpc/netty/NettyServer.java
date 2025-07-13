@@ -22,6 +22,7 @@ import java.util.logging.Handler;
 @Slf4j
 public class NettyServer implements MsServer {
 
+    public static final int DEFAULT_PORT = 13567;
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
 
@@ -56,7 +57,7 @@ public class NettyServer implements MsServer {
                     .handler(new LoggingHandler(LogLevel.INFO))
                     // 当客户端第一次进行请求的时候才会进行初始化
                     .childHandler(new NettyServerInitiator(eventExecutors));
-            serverBootstrap.bind(13567).sync().channel();
+            serverBootstrap.bind(msServiceProvider.getMsRpcConfig().getProviderPort()).sync().channel();
             isRunning = true;
             Runtime.getRuntime().addShutdownHook(new Thread() {
                public void run() {

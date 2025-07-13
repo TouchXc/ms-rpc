@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@EnableRpc
+@EnableRpc(serverPort = 13567,nacosGroup = "ms-rpc-group")
 @ComponentScan(value = "com.mszlu.rpc.provider.*")
 public class ProviderApp {
 
