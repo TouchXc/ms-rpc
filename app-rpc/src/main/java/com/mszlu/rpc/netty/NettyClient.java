@@ -27,7 +27,10 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
@@ -39,11 +42,14 @@ public class NettyClient implements MsClient{
     private final Bootstrap bootstrap;
     private final UnprocessRequests unprocessedRequests;
     private final NacosTemplate nacosTemplate;
+    private final EventLoopGroup eventLoopGroup;
+    // 用于缓存服务名称
+    private final static Set<String> SERVICE = new CopyOnWriteArraySet<>();
 
     public NettyClient() {
         this.unprocessedRequests = SingletonFactory.getInstance(UnprocessRequests.class);
         this.nacosTemplate = SingletonFactory.getInstance(NacosTemplate.class);
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+        this.eventLoopGroup = new NioEventLoopGroup();
         this.bootstrap = new Bootstrap();
         this.bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
@@ -64,17 +70,32 @@ public class NettyClient implements MsClient{
 
     @Override
     public Object sendRequest(MsRequest msRequest) {
-        CompletableFuture<MsResponse<Object>> resultFuture = new CompletableFuture<>();
         String serviceName = msRequest.getInterfaceName() + msRequest.getVersion();
-        Instance oneHealthyInstance = null;
-        try {
-            oneHealthyInstance = nacosTemplate.getOneHealthyInstance(serviceName, msRpcConfig.getNacosGroup());
-        } catch (Exception e) {
-            log.error("获取nacos实例失败");
-            return resultFuture.completeExceptionally(e);
-//            throw new MsRpcException("没有获取到可用的服务提供者");
+        InetSocketAddress inetSocketAddress = null;
+        // 优先获取缓存中的服务信息
+        if (!SERVICE.isEmpty()) {
+            //随机获取一个服务
+            Optional<String> oneServiceOptional = SERVICE.stream().skip(SERVICE.size() - 1).findFirst();
+            if (oneServiceOptional.isPresent()) {
+                String serviceInfo = oneServiceOptional.get();
+                String[] ipAndPort = serviceInfo.split(":");
+                inetSocketAddress = new InetSocketAddress(ipAndPort[0], Integer.parseInt(ipAndPort[1]));
+            }
         }
-        InetSocketAddress inetSocketAddress = new InetSocketAddress(oneHealthyInstance.getIp(),oneHealthyInstance.getPort());
+        // 无缓存获取 直接走Nacos获取
+        if (inetSocketAddress==null) {
+            Instance oneHealthyInstance = null;
+            try {
+                oneHealthyInstance = nacosTemplate.getOneHealthyInstance(serviceName, msRpcConfig.getNacosGroup());
+            } catch (Exception e) {
+                log.error("获取nacos实例失败");
+//                return resultFuture.completeExceptionally(e);
+                throw new MsRpcException("没有获取到可用的服务提供者");
+            }
+            // 缓存服务实例信息
+            SERVICE.add(oneHealthyInstance.getIp() + ":" + oneHealthyInstance.getPort());
+            inetSocketAddress = new InetSocketAddress(oneHealthyInstance.getIp(),oneHealthyInstance.getPort());
+        }
         CompletableFuture<Channel> completableFuture = new CompletableFuture<>();
         bootstrap.connect(inetSocketAddress).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
@@ -85,6 +106,7 @@ public class NettyClient implements MsClient{
             }
         });
 
+        CompletableFuture<MsResponse<Object>> resultFuture = new CompletableFuture<>();
         try {
             Channel channel = completableFuture.get();
             if (channel.isActive()) {
