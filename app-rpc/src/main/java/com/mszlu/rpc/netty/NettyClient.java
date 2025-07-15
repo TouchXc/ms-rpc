@@ -15,6 +15,7 @@ import com.mszlu.rpc.netty.codec.MsRpcEncoder;
 import com.mszlu.rpc.netty.handler.client.MsNettyClientHandler;
 import com.mszlu.rpc.netty.handler.client.UnprocessRequests;
 import com.mszlu.rpc.register.nacos.NacosTemplate;
+import com.sun.source.tree.NewClassTree;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -22,6 +23,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class NettyClient implements MsClient{
@@ -44,7 +47,7 @@ public class NettyClient implements MsClient{
     private final NacosTemplate nacosTemplate;
     private final EventLoopGroup eventLoopGroup;
     // 用于缓存服务名称
-    private final static Set<String> SERVICE = new CopyOnWriteArraySet<>();
+    private static final Set<String> SERVICE = new CopyOnWriteArraySet<>();
 
     public NettyClient() {
         this.unprocessedRequests = SingletonFactory.getInstance(UnprocessRequests.class);
@@ -59,6 +62,8 @@ public class NettyClient implements MsClient{
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
+                        // 保活机制 3s
+                        socketChannel.pipeline().addLast(new IdleStateHandler(0,3,0, TimeUnit.SECONDS));
                         socketChannel.pipeline().addLast("decoder",new MsRpcDecoder());
                         socketChannel.pipeline().addLast("encoder",new MsRpcEncoder());
                         socketChannel.pipeline().addLast("handler",new MsNettyClientHandler());
@@ -73,6 +78,7 @@ public class NettyClient implements MsClient{
         String serviceName = msRequest.getInterfaceName() + msRequest.getVersion();
         InetSocketAddress inetSocketAddress = null;
         // 优先获取缓存中的服务信息
+
         if (!SERVICE.isEmpty()) {
             //随机获取一个服务
             Optional<String> oneServiceOptional = SERVICE.stream().skip(SERVICE.size() - 1).findFirst();
@@ -83,6 +89,7 @@ public class NettyClient implements MsClient{
             }
         }
         // 无缓存获取 直接走Nacos获取
+        String ipAndPort = null;
         if (inetSocketAddress==null) {
             Instance oneHealthyInstance = null;
             try {
@@ -93,15 +100,21 @@ public class NettyClient implements MsClient{
                 throw new MsRpcException("没有获取到可用的服务提供者");
             }
             // 缓存服务实例信息
-            SERVICE.add(oneHealthyInstance.getIp() + ":" + oneHealthyInstance.getPort());
-            inetSocketAddress = new InetSocketAddress(oneHealthyInstance.getIp(),oneHealthyInstance.getPort());
+            String ip = oneHealthyInstance.getIp();
+            int port = oneHealthyInstance.getPort();
+            SERVICE.add(ip + ":" + port);
+            ipAndPort = ip + ":" + port;
+            inetSocketAddress = new InetSocketAddress(ip,port);
         }
+        final String finalIpAndPort = ipAndPort;
         CompletableFuture<Channel> completableFuture = new CompletableFuture<>();
         bootstrap.connect(inetSocketAddress).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 //代表连接成功，将channel放入任务中
                 completableFuture.complete(channelFuture.channel());
             }else {
+                SERVICE.remove(finalIpAndPort);
+                completableFuture.completeExceptionally(channelFuture.cause());
                 throw new MsRpcException("连接服务器失败");
             }
         });

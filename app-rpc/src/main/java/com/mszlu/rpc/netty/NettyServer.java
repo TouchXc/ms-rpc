@@ -1,7 +1,7 @@
 package com.mszlu.rpc.netty;
 
 
-import com.mszlu.rpc.factory.NettyServerInitiator;
+import com.mszlu.rpc.netty.handler.server.NettyServerInitiator;
 import com.mszlu.rpc.netty.handler.MsRpcThreadFactory;
 import com.mszlu.rpc.server.MsServiceProvider;
 import com.mszlu.rpc.utils.RuntimeUtil;
@@ -13,11 +13,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.logging.Handler;
 
 @Slf4j
 public class NettyServer implements MsServer {
