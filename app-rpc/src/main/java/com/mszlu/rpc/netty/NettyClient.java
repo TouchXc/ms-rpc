@@ -14,6 +14,7 @@ import com.mszlu.rpc.netty.codec.MsRpcDecoder;
 import com.mszlu.rpc.netty.codec.MsRpcEncoder;
 import com.mszlu.rpc.netty.handler.client.MsNettyClientHandler;
 import com.mszlu.rpc.netty.handler.client.UnprocessRequests;
+import com.mszlu.rpc.netty.handler.idle.ConnectionWatchDog;
 import com.mszlu.rpc.register.nacos.NacosTemplate;
 import com.sun.source.tree.NewClassTree;
 import io.netty.bootstrap.Bootstrap;
@@ -24,6 +25,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +50,9 @@ public class NettyClient implements MsClient{
     private final UnprocessRequests unprocessedRequests;
     private final NacosTemplate nacosTemplate;
     private final EventLoopGroup eventLoopGroup;
+
+    protected final HashedWheelTimer timer = new HashedWheelTimer();
+
     // 用于缓存服务名称
     private static final Set<String> SERVICE = new CopyOnWriteArraySet<>();
 
@@ -58,17 +65,17 @@ public class NettyClient implements MsClient{
                 .channel(NioSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 // 设置超时时间
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS,5000)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
-                        // 保活机制 3s
-                        socketChannel.pipeline().addLast(new IdleStateHandler(0,3,0, TimeUnit.SECONDS));
-                        socketChannel.pipeline().addLast("decoder",new MsRpcDecoder());
-                        socketChannel.pipeline().addLast("encoder",new MsRpcEncoder());
-                        socketChannel.pipeline().addLast("handler",new MsNettyClientHandler());
-                    }
-                });
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS,5000);
+//                .handler(new ChannelInitializer<SocketChannel>() {
+//                    @Override
+//                    protected void initChannel(SocketChannel socketChannel) throws Exception {
+//                        // 保活机制 3s
+//                        socketChannel.pipeline().addLast(new IdleStateHandler(0,3,0, TimeUnit.SECONDS));
+//                        socketChannel.pipeline().addLast("decoder",new MsRpcDecoder());
+//                        socketChannel.pipeline().addLast("encoder",new MsRpcEncoder());
+//                        socketChannel.pipeline().addLast("handler",new MsNettyClientHandler());
+//                    }
+//                });
 
     }
 
@@ -106,8 +113,37 @@ public class NettyClient implements MsClient{
             ipAndPort = ip + ":" + port;
             inetSocketAddress = new InetSocketAddress(ip,port);
         }
+
         final String finalIpAndPort = ipAndPort;
         CompletableFuture<Channel> completableFuture = new CompletableFuture<>();
+
+        ConnectionWatchDog watchDog = new ConnectionWatchDog(true,this.bootstrap,timer,inetSocketAddress,completableFuture) {
+            @Override
+            public void clear(InetSocketAddress inetSocketAddress) {
+                SERVICE.remove(inetSocketAddress.getHostName()+":"+inetSocketAddress.getPort());
+                log.info("重连失败 清除缓存");
+            }
+
+            @Override
+            public ChannelHandler[] handlers() {
+                return new ChannelHandler[]{
+                        this,
+                        new IdleStateHandler(0,3,0, TimeUnit.SECONDS),
+                        new MsRpcDecoder(),
+                        new MsRpcEncoder(),
+                        new MsNettyClientHandler()
+                };
+            }
+        };
+
+        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+
+            @Override
+            protected void initChannel(SocketChannel socketChannel) throws Exception {
+                socketChannel.pipeline().addLast(watchDog.handlers());
+            }
+        });
+
         bootstrap.connect(inetSocketAddress).addListener((ChannelFutureListener) channelFuture -> {
             if (channelFuture.isSuccess()) {
                 //代表连接成功，将channel放入任务中

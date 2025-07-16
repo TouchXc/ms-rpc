@@ -49,7 +49,7 @@ public class MsNettyServerHandler extends ChannelInboundHandlerAdapter {
                         }
                         log.info("服务端收到数据，并处理完成{}:",msMessage);
                         // 写完数据后关闭通道
-                        ctx.writeAndFlush(msMessage).addListener(ChannelFutureListener.CLOSE);
+                        ctx.writeAndFlush(msMessage).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                     }
                 }
             }
