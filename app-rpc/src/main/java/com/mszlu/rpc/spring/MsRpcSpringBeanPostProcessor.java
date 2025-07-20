@@ -123,5 +123,6 @@ public class MsRpcSpringBeanPostProcessor implements BeanPostProcessor, BeanFact
 
     public void setMsRpcConfig(MsRpcConfig msRpcConfig) {
         this.msRpcConfig = msRpcConfig;
+
     }
 }

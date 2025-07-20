@@ -1,5 +1,7 @@
 package com.mszlu.rpc.netty.handler.idle;
 
+import com.mszlu.rpc.factory.SingletonFactory;
+import com.mszlu.rpc.netty.handler.client.ChannelCache;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -8,7 +10,6 @@ import io.netty.util.Timer;
 import io.netty.util.TimerTask;
 import lombok.extern.slf4j.Slf4j;
 
-import java.awt.image.VolatileImage;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -23,9 +24,12 @@ public abstract class ConnectionWatchDog extends ChannelInboundHandlerAdapter im
     private final InetSocketAddress inetSocketAddress;
 
     private volatile boolean reconnect = true;
+
     private int attempts;
 
     private final CompletableFuture<Channel> completableFuture;
+
+    private final ChannelCache channelCache;
 
     public ConnectionWatchDog(boolean reconnect, Bootstrap bootstrap, Timer timer, InetSocketAddress inetSocketAddress, CompletableFuture<Channel> completableFuture) {
         this.reconnect = reconnect;
@@ -33,6 +37,7 @@ public abstract class ConnectionWatchDog extends ChannelInboundHandlerAdapter im
         this.timer = timer;
         this.inetSocketAddress = inetSocketAddress;
         this.completableFuture = completableFuture;
+        this.channelCache = SingletonFactory.getInstance(ChannelCache.class);
     }
 
 
@@ -86,6 +91,7 @@ public abstract class ConnectionWatchDog extends ChannelInboundHandlerAdapter im
                 if (f.isSuccess()){
                     //代表连接成功，将channel放入任务中
                     completableFuture.complete(f.channel());
+                    channelCache.set(inetSocketAddress,f.channel());
                 }else {
                     completableFuture.completeExceptionally(future.cause());
                     //尝试重连

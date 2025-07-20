@@ -15,4 +15,6 @@ public class MsRpcConfig {
      * 同一个组内 互通，并组成集群
      */
     private String nacosGroup = "ms-rpc-group";
+
+    private String loadBalance = "randomLoadBalance";
 }

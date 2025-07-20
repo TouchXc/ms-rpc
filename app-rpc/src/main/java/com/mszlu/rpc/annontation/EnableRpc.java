@@ -22,4 +22,6 @@ public @interface EnableRpc {
     //server服务端口
     int serverPort() default 13567;
 
+    // 负载均衡器
+    String loadBalance() default "roundRobinLoadBalance";
 }
